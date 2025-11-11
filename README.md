@@ -36,7 +36,7 @@ You can use either the **source version** or the **prebuilt plugin**.
 5. Restart the editor if prompted.
 
 ### Build from source
-1. Clone this repositorys `TArrayQueue` into your project’s `Source` folder.
+1. Clone this repositorys `TArrayQueue.h` into your project’s `Source` folder.
 2. Regenerate project files.
 3. Rebuild your project.
 
@@ -112,3 +112,4 @@ You have to construct them using the **Construct Object from Class**
 License
 MIT License © 2025
 You may use, modify, and distribute freely with attribution.
+
