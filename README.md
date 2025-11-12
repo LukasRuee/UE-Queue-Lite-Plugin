@@ -1,3 +1,6 @@
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![Unreal Engine: 5.6.1](https://img.shields.io/badge/UE-5.6.1-blue)
+
 # UnrealTArrayQueue
 
 A lightweight, header-only circular queue implementation for Unreal Engine based on `TArray`.  
@@ -58,5 +61,6 @@ For more examples and usage patterns, see the C++ Usage guide.
 License
 MIT License © 2025 LukasRuee
 You may use, modify, and distribute freely with attribution.
+
 
 
