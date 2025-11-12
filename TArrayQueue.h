@@ -5,17 +5,34 @@
 #include "TArrayQueue.generated.h"
 
 /**
- * Circular queue implemented on top of TArray.
- * Supports enqueue/dequeue from front and pop from back.
- * Efficient O(1) operations with occasional array growth.
+ * UE-Queue Lite Plugin
+ * TArrayQueue Implementation
+ * 
+ * Author: LukasRuee
+ * GitHub: https://github.com/LukasRuee/UE-Queue-Lite-Plugin
+ * License: MIT License
+ * 
+ * Description:
+ *   Lightweight, circular queue implementation built on TArray.
+ *   Supports O(1) enqueue/dequeue, range-based iteration,
+ *   and Blueprint-accessible wrappers for common Unreal types.
+ * 
+ * Usage:
+ *   Include "TArrayQueue.h" and optionally use Blueprint wrapper classes.
+ * 
+ * Note:
+ *   This file contains the implementation of Blueprint-exposed
+ *   queue wrappers and helper functions.
  */
+
 template <typename ElementType>
 class QUEUELITE_API TArrayQueue
 {
 private:
-    TArray<ElementType> Data;  // Underlying storage
-    int32 Head = 0;            // Index of the front element
-    int32 Count = 0;           // Number of elements in the queue
+    TArray<ElementType> Data;   // Underlying storage
+    int32 Head = 0;             // Index of the front element
+    int32 Count = 0;            // Number of elements in the queue
+    int32 GrowthSize = 32;       // Number of elements in the queue
 
     /** Convert logical index to physical index in Data */
     FORCEINLINE int32 InternalIndex(const int32 Index) const
@@ -27,11 +44,8 @@ private:
     /** Grow storage array, copying elements with wrap-around handling */
     void Grow()
     {
-        const int32 OldCapacity = Data.Num();
-        const int32 NewCapacity = FMath::Max(4, OldCapacity * 2);
-
         TArray<ElementType> NewData;
-        NewData.SetNumUninitialized(NewCapacity);
+        NewData.SetNumUninitialized(GrowthSize + Data.Num());
 
         if (Count == 0)
         {
@@ -40,7 +54,7 @@ private:
             return;
         }
 
-        const int32 FirstPart = FMath::Min(OldCapacity - Head, Count);
+        const int32 FirstPart = FMath::Min(Data.Num() - Head, Count);
         if (FirstPart > 0)
         {
             FMemory::Memcpy(NewData.GetData(), &Data[Head], sizeof(ElementType) * FirstPart);
@@ -57,7 +71,7 @@ private:
 
 public:
     TArrayQueue() = default;
-    explicit TArrayQueue(int32 InitialCapacity) { Data.Reserve(InitialCapacity); }
+    explicit TArrayQueue(int32 InitialCapacity, const int32 InGrowthSize) { Data.Reserve(InitialCapacity); GrowthSize = FMath::Max(1, InGrowthSize); }
     ~TArrayQueue() { Empty(); }
 
     /** Removes all elements and frees underlying storage */
@@ -112,7 +126,53 @@ public:
 
         return true;
     }
+    
+    
+    /** Appends all elements from another queue, moving them if possible. */
+    FORCEINLINE void Append(TArrayQueue&& Other)
+    {
+        if (Other.Count == 0)
+        {
+            return;
+        }
 
+        // If current queue is empty, just take over its data
+        if (IsEmpty())
+        {
+            Swap(Other);
+            return;
+        }
+
+        // Otherwise, append element-wise via move
+        const int32 RequiredCapacity = Count + Other.Count;
+        if (RequiredCapacity > Data.Num())
+        {
+            while (Data.Num() < RequiredCapacity)
+            {
+                Grow();
+            }
+        }
+
+        for (int32 i = 0; i < Other.Count; ++i)
+        {
+            Enqueue(MoveTemp(Other.Data[Other.InternalIndex(i)]));
+        }
+
+        Other.Clear();
+    }
+
+    /** Copy data to an Array */
+    FORCEINLINE TArray<ElementType> ToArray() const
+    {
+        TArray<ElementType> Result;
+        Result.Reserve(Count);
+        for (int32 i = 0; i < Count; ++i)
+        {
+            Result.Add(Data[InternalIndex(i)]);
+        }
+        return Result;
+    }
+    
     /** Clears all elements but keeps allocated memory for reuse */
     FORCEINLINE void Clear() { Count = 0; Head = 0; }
 
@@ -121,6 +181,9 @@ public:
 
     /** Number of elements */
     FORCEINLINE int32 Num() const { return Count; }
+
+    /** Returns the number of allocated slots in the queue (capacity of the underlying array) */
+    FORCEINLINE int32 Capacity() const { return Data.Num(); }
 
     /** Reference front element. Check fails if empty. */
     FORCEINLINE const ElementType& Front() const { check(Count > 0); return Data[Head]; }
@@ -151,6 +214,12 @@ public:
         ::Swap(Head, Other.Head);
         ::Swap(Count, Other.Count);
     }
+    
+    /** Overrides GrowthSize, but ensures a min GrowthSize of 1 */
+    FORCEINLINE void SetGrowthSize(const int32 InGrowthSize)
+    {
+        GrowthSize = FMath::Max(1, InGrowthSize);
+    }
 
     /** Iterator for range-based for loops, handles wrap-around */
     struct FIterator
@@ -178,7 +247,6 @@ public:
 
     /** Begin iterator for range-based loops */
     auto begin() const { return FIterator(this, Head); }
-
     /** End iterator for range-based loops */
     auto end() const { return FIterator(this, Head + Count); }
 };
@@ -196,6 +264,19 @@ class QUEUELITE_API UIntQueueObject : public UObject
 
 private:
     TArrayQueue<int32> Queue;
+
+public:
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void Initialize(const int32 InitialCapacity = 32, const int32 InGrowthSize = 32)
+    {
+        Queue = TArrayQueue<int32>(FMath::Max(1, InitialCapacity), FMath::Max(1, InGrowthSize));
+    }
+
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void SetGrowthSize(const int32 InGrowthSize = 32)
+    {
+        Queue.SetGrowthSize(FMath::Max(1, InGrowthSize));
+    }
     
     UFUNCTION(BlueprintCallable, Category="Queue")
     void Enqueue(const int32 Value) { Queue.Enqueue(Value); }
@@ -207,6 +288,9 @@ private:
     bool PopLast(int32& OutValue) { return Queue.PopLast(OutValue); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
+    TArray<int32> ToArray() const { return Queue.ToArray(); } 
+    
+    UFUNCTION(BlueprintCallable, Category="Queue")
     void Clear() { Queue.Clear(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
@@ -214,6 +298,9 @@ private:
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     int32 Num() const { return Queue.Num(); }
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
+    int32 Capacity() const { return Queue.Capacity(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     bool IsEmpty() const { return Queue.IsEmpty(); }
@@ -239,6 +326,18 @@ private:
     TArrayQueue<float> Queue;
 
 public:
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void Initialize(const int32 InitialCapacity = 32, const int32 InGrowthSize = 32)
+    {
+        Queue = TArrayQueue<float>(FMath::Max(1, InitialCapacity), FMath::Max(1, InGrowthSize));
+    }
+
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void SetGrowthSize(const int32 InGrowthSize = 32)
+    {
+        Queue.SetGrowthSize(FMath::Max(1, InGrowthSize));
+    }
+    
     UFUNCTION(BlueprintCallable, Category="Queue")
     void Enqueue(const float Value) { Queue.Enqueue(Value); }
 
@@ -249,6 +348,9 @@ public:
     bool PopLast(float& OutValue) { return Queue.PopLast(OutValue); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
+    TArray<float> ToArray() const { return Queue.ToArray(); } 
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
     void Clear() { Queue.Clear(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
@@ -256,6 +358,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     int32 Num() const { return Queue.Num(); }
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
+    int32 Capacity() const { return Queue.Capacity(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     bool IsEmpty() const { return Queue.IsEmpty(); }
@@ -281,6 +386,18 @@ private:
     TArrayQueue<AActor*> Queue;
 
 public:
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void Initialize(const int32 InitialCapacity = 32, const int32 InGrowthSize = 32)
+    {
+        Queue = TArrayQueue<AActor*>(FMath::Max(1, InitialCapacity), FMath::Max(1, InGrowthSize));
+    }
+
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void SetGrowthSize(const int32 InGrowthSize = 32)
+    {
+        Queue.SetGrowthSize(FMath::Max(1, InGrowthSize));
+    }
+    
     UFUNCTION(BlueprintCallable, Category="Queue")
     void Enqueue(AActor* Actor) { Queue.Enqueue(Actor); }
 
@@ -291,6 +408,9 @@ public:
     bool PopLast(AActor*& OutActor) { return Queue.PopLast(OutActor); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
+    TArray<AActor*> ToArray() const { return Queue.ToArray(); } 
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
     void Clear() { Queue.Clear(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
@@ -298,6 +418,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     int32 Num() const { return Queue.Num(); }
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
+    int32 Capacity() const { return Queue.Capacity(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     bool IsEmpty() const { return Queue.IsEmpty(); }
@@ -323,6 +446,18 @@ private:
     TArrayQueue<UObject*> Queue;
 
 public:
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void Initialize(const int32 InitialCapacity = 32, const int32 InGrowthSize = 32)
+    {
+        Queue = TArrayQueue<UObject*>(FMath::Max(1, InitialCapacity), FMath::Max(1, InGrowthSize));
+    }
+
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void SetGrowthSize(const int32 InGrowthSize = 32)
+    {
+        Queue.SetGrowthSize(FMath::Max(1, InGrowthSize));
+    }
+    
     UFUNCTION(BlueprintCallable, Category="Queue")
     void Enqueue(UObject* Value) { Queue.Enqueue(Value); }
 
@@ -333,6 +468,9 @@ public:
     bool PopLast(UObject*& OutValue) { return Queue.PopLast(OutValue); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
+    TArray<UObject*> ToArray() const { return Queue.ToArray(); } 
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
     void Clear() { Queue.Clear(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
@@ -340,6 +478,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     int32 Num() const { return Queue.Num(); }
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
+    int32 Capacity() const { return Queue.Capacity(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     bool IsEmpty() const { return Queue.IsEmpty(); }
@@ -365,6 +506,18 @@ private:
     TArrayQueue<TSubclassOf<AActor>> Queue;
 
 public:
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void Initialize(const int32 InitialCapacity = 32, const int32 InGrowthSize = 32)
+    {
+        Queue = TArrayQueue<TSubclassOf<AActor>>(FMath::Max(1, InitialCapacity), FMath::Max(1, InGrowthSize));
+    }
+
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void SetGrowthSize(const int32 InGrowthSize = 32)
+    {
+        Queue.SetGrowthSize(FMath::Max(1, InGrowthSize));
+    }
+    
     UFUNCTION(BlueprintCallable, Category="Queue")
     void Enqueue(const TSubclassOf<AActor> Value) { Queue.Enqueue(Value); }
 
@@ -375,6 +528,9 @@ public:
     bool PopLast(TSubclassOf<AActor>& OutValue) { return Queue.PopLast(OutValue); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
+    TArray<TSubclassOf<AActor>> ToArray() const { return Queue.ToArray(); } 
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
     void Clear() { Queue.Clear(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
@@ -382,6 +538,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     int32 Num() const { return Queue.Num(); }
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
+    int32 Capacity() const { return Queue.Capacity(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     bool IsEmpty() const { return Queue.IsEmpty(); }
@@ -407,6 +566,18 @@ private:
     TArrayQueue<FString> Queue;
 
 public:
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void Initialize(const int32 InitialCapacity = 32, const int32 InGrowthSize = 32)
+    {
+        Queue = TArrayQueue<FString>(FMath::Max(1, InitialCapacity), FMath::Max(1, InGrowthSize));
+    }
+
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void SetGrowthSize(const int32 InGrowthSize = 32)
+    {
+        Queue.SetGrowthSize(FMath::Max(1, InGrowthSize));
+    }
+    
     UFUNCTION(BlueprintCallable, Category="Queue")
     void Enqueue(const FString& Value) { Queue.Enqueue(Value); }
 
@@ -417,6 +588,9 @@ public:
     bool PopLast(FString& OutValue) { return Queue.PopLast(OutValue); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
+    TArray<FString> ToArray() const { return Queue.ToArray(); } 
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
     void Clear() { Queue.Clear(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
@@ -424,6 +598,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     int32 Num() const { return Queue.Num(); }
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
+    int32 Capacity() const { return Queue.Capacity(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     bool IsEmpty() const { return Queue.IsEmpty(); }
@@ -449,6 +626,18 @@ private:
     TArrayQueue<FVector> Queue;
 
 public:
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void Initialize(const int32 InitialCapacity = 32, const int32 InGrowthSize = 32)
+    {
+        Queue = TArrayQueue<FVector>(FMath::Max(1, InitialCapacity), FMath::Max(1, InGrowthSize));
+    }
+
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void SetGrowthSize(const int32 InGrowthSize = 32)
+    {
+        Queue.SetGrowthSize(FMath::Max(1, InGrowthSize));
+    }
+    
     UFUNCTION(BlueprintCallable, Category="Queue")
     void Enqueue(const FVector& Value) { Queue.Enqueue(Value); }
 
@@ -459,6 +648,9 @@ public:
     bool PopLast(FVector& OutValue) { return Queue.PopLast(OutValue); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
+    TArray<FVector> ToArray() const { return Queue.ToArray(); } 
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
     void Clear() { Queue.Clear(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
@@ -466,6 +658,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     int32 Num() const { return Queue.Num(); }
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
+    int32 Capacity() const { return Queue.Capacity(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     bool IsEmpty() const { return Queue.IsEmpty(); }
@@ -491,6 +686,18 @@ private:
     TArrayQueue<FRotator> Queue;
 
 public:
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void Initialize(const int32 InitialCapacity = 32, const int32 InGrowthSize = 32)
+    {
+        Queue = TArrayQueue<FRotator>(FMath::Max(1, InitialCapacity), FMath::Max(1, InGrowthSize));
+    }
+
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void SetGrowthSize(const int32 InGrowthSize = 32)
+    {
+        Queue.SetGrowthSize(FMath::Max(1, InGrowthSize));
+    }
+    
     UFUNCTION(BlueprintCallable, Category="Queue")
     void Enqueue(const FRotator& Value) { Queue.Enqueue(Value); }
 
@@ -501,6 +708,9 @@ public:
     bool PopLast(FRotator& OutValue) { return Queue.PopLast(OutValue); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
+    TArray<FRotator> ToArray() const { return Queue.ToArray(); } 
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
     void Clear() { Queue.Clear(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
@@ -508,6 +718,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     int32 Num() const { return Queue.Num(); }
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
+    int32 Capacity() const { return Queue.Capacity(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     bool IsEmpty() const { return Queue.IsEmpty(); }
@@ -533,6 +746,18 @@ private:
     TArrayQueue<FTransform> Queue;
 
 public:
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void Initialize(const int32 InitialCapacity = 32, const int32 InGrowthSize = 32)
+    {
+        Queue = TArrayQueue<FTransform>(FMath::Max(1, InitialCapacity), FMath::Max(1, InGrowthSize));
+    }
+
+    UFUNCTION(BlueprintCallable, Category="Queue", meta=(ClampMin="1", UIMin="1"))
+    void SetGrowthSize(const int32 InGrowthSize = 32)
+    {
+        Queue.SetGrowthSize(FMath::Max(1, InGrowthSize));
+    }
+    
     UFUNCTION(BlueprintCallable, Category="Queue")
     void Enqueue(const FTransform& Value) { Queue.Enqueue(Value); }
 
@@ -541,6 +766,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     bool PopLast(FTransform& OutValue) { return Queue.PopLast(OutValue); }
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
+    TArray<FTransform> ToArray() const { return Queue.ToArray(); } 
 
     UFUNCTION(BlueprintCallable, Category="Queue")
     void Clear() { Queue.Clear(); }
@@ -552,6 +780,9 @@ public:
     int32 Num() const { return Queue.Num(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
+    int32 Capacity() const { return Queue.Capacity(); }
+
+    UFUNCTION(BlueprintCallable, Category="Queue")
     bool IsEmpty() const { return Queue.IsEmpty(); }
 
     UFUNCTION(BlueprintCallable, Category="Queue")
@@ -561,3 +792,14 @@ public:
     bool PeekBack(FTransform& OutValue) const { return Queue.PeekBack(OutValue); }
 };
 #pragma endregion
+
+/* 
+ * End of TArrayQueue / UE-Queue Lite Plugin
+ * 
+ * MIT License applies to all code in this file.
+ * 
+ * For documentation, examples, and updates:
+ *   GitHub: https://github.com/LukasRuee/UE-Queue-Lite-Plugin
+ * 
+ * Keep your circular queues efficient, clean, and safe!
+ */
