@@ -20,6 +20,18 @@ Provides efficient O(1) enqueue/dequeue operations and includes Blueprint-access
   - `UObject*`, `AActor*`, `TSubclassOf<AActor>`
   - `FString`, `FVector`, `FRotator`, `FTransform`
 
+Why It’s Different from TQueue
+- Blueprint-Friendly
+  - TQueue is a C++ template class and not directly exposed to Blueprints.
+  - UE Queue Lite provides native Blueprint nodes, so no C++ coding is required.
+- Predefined Types
+  - Instead of creating a TQueue for each type manually, your plugin comes with ready-to-use queue types for common data (e.g., integers, strings, objects).
+- Lightweight & Simple
+  - Focused on straightforward queue usage. No unnecessary extra features or complexity.
+  - Ideal for developers who just need a queue in Blueprint without wrapping C++ code.
+- Safe for Blueprint
+  - Nodes handle edge cases like empty queues gracefully, reducing runtime errors.
+
 ## Installation
 
 You can use the **prebuilt plugin** or **build from source**:
@@ -62,6 +74,7 @@ For more examples and usage patterns, see the C++ Usage guide.
 License
 MIT License © 2025 LukasRuee
 You may use, modify, and distribute freely with attribution.
+
 
 
 
