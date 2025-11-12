@@ -1,7 +1,7 @@
 # UnrealTArrayQueue
 
-A lightweight circular queue implementation for Unreal Engine based on `TArray`.  
-Provides efficient O(1) enqueue/dequeue operations and includes Blueprint-accessible wrapper classes for common Unreal types.
+A lightweight, header-only circular queue implementation for Unreal Engine based on `TArray`.  
+Provides efficient O(1) enqueue/dequeue operations and includes Blueprint-accessible wrappers for common Unreal types.
 
 ---
 
@@ -10,106 +10,52 @@ Provides efficient O(1) enqueue/dequeue operations and includes Blueprint-access
 - Header-only `TArrayQueue<T>` template for C++
 - Efficient circular buffer with automatic growth
 - Supports range-based iteration
-- Safe and minimal memory overhead
+- Minimal memory overhead
 - Blueprint wrappers included for:
-  - `int32`
-  - `float`
-  - `UObject*`
-  - `AActor*`
-  - `FString`
-  - `FVector`
-  - `FRotator`
-  - `FTransform`
-  - `TSubclassOf<AActor>`
-
----
+  - `int32`, `float`
+  - `UObject*`, `AActor*`, `TSubclassOf<AActor>`
+  - `FString`, `FVector`, `FRotator`, `FTransform`
 
 ## Installation
 
-You can use either the **source version** or the **prebuilt plugin**.
+You can use the **prebuilt plugin** or **build from source**:
 
-### Use prebuilt plugin
-1. Download the `Zip-Folder` from this repository.
-2. Extract it into your project’s `Plugins/` folder.
-3. Open your Unreal project.
-4. Enable the plugin in `Edit → Plugins`.
-5. Restart the editor if prompted.
+### Prebuilt Plugin
 
-### Build from source
-1. Clone this repositorys `TArrayQueue.h` into your project’s `Source` folder.
-2. Regenerate project files.
-3. Rebuild your project.
+1. Download the zip from this repository.  
+2. Extract it into your project’s `Plugins/` folder.  
+3. Open your Unreal project and enable the plugin via **Edit → Plugins**.  
+4. Restart the editor if prompted.
 
----
+### Build from Source
 
-## Usage in C++
+1. Copy `TArrayQueue.h` into your project’s `Source` folder.  
+2. Regenerate project files and rebuild your project.  
+
+## Documentation
+
+- Wiki **Home**: [Wiki]([https://github.com/LukasRuee/UE-Queue-Lite-Plugin/wiki/C++-Usage](https://github.com/LukasRuee/UE-Queue-Lite-Plugin/wiki))
+- Full **C++ usage guide**: [C++ Usage](https://github.com/LukasRuee/UE-Queue-Lite-Plugin/wiki/C++-Usage)
+- Full **Blueprint usage guide**: [Blueprint Usage](https://github.com/LukasRuee/UE-Queue-Lite-Plugin/wiki/Blueprint-Usage)
+- API reference, examples, and advanced tips are available in the wiki.
+
+## Quick Example (C++)
 
 ```cpp
 #include "TArrayQueue.h"
 
-void Example()
+TArrayQueue<int32> Queue;
+Queue.Enqueue(10);
+Queue.Enqueue(20);
+
+int32 Value;
+if (Queue.Dequeue(Value))
 {
- TArrayQueue<int32> Queue;
-
- Queue.Enqueue(10);
- Queue.Enqueue(20);
- Queue.Enqueue(30);
-
- int32 Value;
- if (Queue.Dequeue(Value))
- {
-     UE_LOG(LogTemp, Log, TEXT("Dequeued: %d"), Value);
- }
-
- UE_LOG(LogTemp, Log, TEXT("Remaining elements: %d"), Queue.Num());
+    UE_LOG(LogTemp, Log, TEXT("Dequeued: %d"), Value);
 }
 ```
-
-## Usage in Blueprints
-Each supported type has its own Blueprint wrapper class:
-- U**Int**QueueObject
-- U**Float**QueueObject
-- U**String**QueueObject
-- U**Transform**QueueObject
-- U**Vector**QueueObject
-- U**Rotator**QueueObject
-- U**Object**QueueObject
-- U**Actor**QueueObject
-- U**Class**QueueObject **(TSubclassOf<AActor>)**
-
-Blueprint nodes include:
-- Enqueue
-- Dequeue
-- Is Empty
-- Num
-- Clear
-
-These queues **DO NOT** automatically initialize when used in Blueprints.\
-You have to construct them using the **Construct Object from Class**
-
-## API Reference
-
-| Function   | Description|
-| :----- | :---------------------------------------------------------------------- |
-| Enqueue(const T& Item)  | Adds an element to the back of the queue|
-| Dequeue(T& OutItem)    | Removes and returns the front element|
-| PopLast(T& OutItem) | Removes and returns the last element|
-| Front() / Back() | Returns front or back elements directly|
-| PeekFront() / PeekBack() | Access front or back elements directly, but safe |
-| Clear() | Resets the queue |
-| Empty() | Resets the queue and frees memory |
-| Num() | Returns the current number of elements |
-| IsEmpty() | Checks if the queue is empty |
-
-## Notes
-- Works in both Runtime and Editor builds.
-- Compatible with Unreal Engine 5.6.1 (And probably older versions)
-- Fully usable in both C++ and Blueprints.
-- Does not depend on engine internals beyond TArray and standard Unreal headers.
-
-*There might be future updates. Pull requests are welcome.*
+For more examples and usage patterns, see the C++ Usage guide.
 
 License
-MIT License © 2025
+MIT License © 2025 LukasRuee
 You may use, modify, and distribute freely with attribution.
-
