@@ -35,7 +35,7 @@ You can use the **prebuilt plugin** or **build from source**:
 ## Documentation
 API reference, examples, and advanced tips are available in the wiki.
 - Wiki **Home**: [Home](https://github.com/LukasRuee/UE-Queue-Lite-Plugin/wiki)
-- Full **C++ usage guide**: [C++ Usage](https://github.com/LukasRuee/UE-Queue-Lite-Plugin/wiki/C++-Usage)
+- Full **C++ usage guide**: [C++ Usage](https://github.com/LukasRuee/UE-Queue-Lite-Plugin/wiki/Cpp-Usage)
 - Full **Blueprint usage guide**: [Blueprint Usage](https://github.com/LukasRuee/UE-Queue-Lite-Plugin/wiki/Blueprint-Usage)
 
 ## Quick Example (C++)
@@ -58,4 +58,5 @@ For more examples and usage patterns, see the C++ Usage guide.
 License
 MIT License © 2025 LukasRuee
 You may use, modify, and distribute freely with attribution.
+
 
