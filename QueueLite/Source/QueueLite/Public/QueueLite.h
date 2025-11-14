@@ -1,6 +1,3 @@
-// Publisher: MasterGames
-// Year: 2025
-// Description: Declaration of the FQueueLiteModule interface for the QueueLite plugin.
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once

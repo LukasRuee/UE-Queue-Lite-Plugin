@@ -14,9 +14,7 @@
 	"CanContainContent": false,
 	"Installed": true,
 	"SupportedTargetPlatforms": [
-		"Win64",
-		"Mac",
-		"Linux"
+		"Win64"
 	],
 	"Modules": [
 		{
@@ -24,9 +22,7 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"PlatformAllowList": [
-				"Win64",
-				"Mac",
-				"Linux"
+				"Win64"
 			]
 		}
 	]

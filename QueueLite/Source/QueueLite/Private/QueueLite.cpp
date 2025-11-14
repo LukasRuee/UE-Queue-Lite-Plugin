@@ -1,10 +1,6 @@
-// Publisher: MasterGames
-// Year: 2025
-// Description: Declaration of the FQueueLiteModule interface for the QueueLite plugin.
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "QueueLite.h"
-
 #define LOCTEXT_NAMESPACE "FQueueLiteModule"
 
 void FQueueLiteModule::StartupModule()

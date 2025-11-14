@@ -1,11 +1,9 @@
-﻿/**
- * Author: LukasRuee
+﻿// LukasRuee 2025 All Rights Reserved.
+
+/**
  * GitHub: https://github.com/LukasRuee/UE-Queue-Lite-Plugin
- * License: MIT License
  * 
  * This header is original code written for the plugin. It’s not third-party.
- * TArrayQueue Implementation
- * UE-Queue Lite Plugin
  * 
  * Description:
  *   Lightweight, circular queue implementation built on TArray.
@@ -18,7 +16,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "TArrayQueue.generated.h"
-
 
 template <typename ElementType>
 class QUEUELITE_API TArrayQueue
