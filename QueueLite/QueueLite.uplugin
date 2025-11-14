@@ -3,12 +3,12 @@
 	"Version": 2,
 	"VersionName": "2.0",
 	"FriendlyName": "QueueLite",
-	"Description": "QueueLite provides a lightweight circular queue built on top of TArray, offering O(1) enqueue and dequeue operations with Blueprint access. Unlike Unreal’s built-in TQueue, this implementation is indexable, iterable, and optimized for both C++ and Blueprint workflows.",
+	"Description": "QueueLite provides a lightweight circular queue built on top of TArray, offering O(1) enqueue and dequeue operations with Blueprint access.",
 	"Category": "Runtime",
 	"CreatedBy": "LukasRuee",
 	"CreatedByURL": "https://github.com/LukasRuee",
 	"DocsURL": "https://github.com/LukasRuee/UE-Queue-Lite-Plugin/wiki",
-	"MarketplaceURL": "com.epicgames.launcher://ue/Fab/product/01e253dd-d9ee-4682-9ef8-e462e4b7ccdc",
+	"MarketplaceURL": "com.epicgames.launcher://ue/Fab/product/01e253dd-d9ee-4682-9ef8-\ne462e4b7ccdc",
 	"SupportURL": "https://github.com/LukasRuee/UE-Queue-Lite-Plugin/issues",
 	"EngineVersion": "5.6.0",
 	"CanContainContent": false,
@@ -22,7 +22,12 @@
 		{
 			"Name": "QueueLite",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64",
+				"Mac",
+				"Linux"
+			]
 		}
 	]
 }

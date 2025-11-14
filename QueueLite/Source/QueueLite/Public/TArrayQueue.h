@@ -1,10 +1,11 @@
 ﻿/**
- * UE-Queue Lite Plugin
- * TArrayQueue Implementation
- * 
  * Author: LukasRuee
  * GitHub: https://github.com/LukasRuee/UE-Queue-Lite-Plugin
  * License: MIT License
+ * 
+ * This header is original code written for the plugin. It’s not third-party.
+ * TArrayQueue Implementation
+ * UE-Queue Lite Plugin
  * 
  * Description:
  *   Lightweight, circular queue implementation built on TArray.
